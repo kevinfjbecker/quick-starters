@@ -1,11 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quick Starters</title>
 </head>
+
 <body>
     <h1>Quick Starters</h1>
+    
+    <div class="container"></div>
+
+    <script type="module">
+
+        ///////////////////////////////////////////////////////////////////////
+
+        /*
+         * container
+         */
+        const container = document.querySelector('.container')
+
+        /*
+         * article
+         */
+        const getArticleElement = ({
+            id,
+            title,
+            description,
+            link
+        }) => {
+            const article = document.createElement('article')
+            article.className = 'branch'
+            article.id = id
+
+            const getTextDiv = ({ className, text }) => {
+                const div = document.createElement('div')
+                div.className = className
+                div.innerText = text
+                return div
+            }
+
+            article.append(getTextDiv({
+                className: 'title',
+                text: title
+            }))
+
+            article.append(getTextDiv({
+                className: 'description',
+                text: description
+            }))
+            const downloadDiv = document.createElement('div')
+            downloadDiv.className = 'download'
+
+            const downloadLink = document.createElement('a')
+            downloadLink.href = link
+            downloadLink.innerText = 'Download'
+            downloadDiv.append(downloadLink)
+            article.append(downloadLink)
+
+            return article
+        }
+
+        ///////////////////////////////////////////////////////////////////////
+
+        const branchesUrl = 'https://api.github.com/repos/kevinfjbecker/quick-starters/branches'
+
+        const branches = await fetch(branchesUrl).then((response) => response.json())
+
+        /*
+         * ids
+         */
+        const articles = branches
+            .map(({ name }) => name)
+            .filter((name) => name != 'main')
+            .map((id) => ({ id }))
+
+        /*
+         * links
+         */
+        const getArchiveDownloadLink = (branchName) => `https://github.com/kevinfjbecker/quick-starters/archive/refs/heads/${branchName}.zip`
+        articles.forEach((article) => {
+            article.link = getArchiveDownloadLink(article.id)
+        })
+
+        /*
+         * readme, title, description
+         */
+        const getReadmeUrl = (branchName) => `https://api.github.com/repos/kevinfjbecker/quick-starters/contents/README.md?ref=${branchName}`
+        const readmeFetches = articles.map((article) =>
+            fetch(getReadmeUrl(article.id))
+                .then((response) => response.json())
+                .then((obj) => {
+                    article.readme = atob(obj.content)
+                    article.title = article.readme.split('\n')[0].substring(2)
+                    article.description = article.readme.split('\n')[2]
+                })
+        )
+        await Promise.all(readmeFetches)
+
+        window.articles = articles
+
+        ///////////////////////////////////////////////////////////////////////
+
+        /*
+         * mount articles
+         */
+        articles.forEach((article) => {
+            container.append(getArticleElement(article))
+        })
+
+    </script>
+
 </body>
+
 </html>
